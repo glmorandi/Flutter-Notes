@@ -1,6 +1,8 @@
 import 'package:notes_trab/db/database_helper.dart';
 import 'package:notes_trab/models/note.dart';
 import 'package:flutter/material.dart';
+import 'package:notes_trab/models/note_tag.dart';
+import 'package:notes_trab/models/tag.dart';
 import 'dart:math';
 
 import 'package:notes_trab/screens/about.dart';
@@ -71,18 +73,12 @@ class _MainAppState extends State<MainApp> {
     loadNotes();
   }
 
-  Future<void> dumpNotesData() async {
+  Future<void> deleteDatabase() async {
     DatabaseHelper databaseHelper = DatabaseHelper.instance;
 
-    List<Note> notes = await databaseHelper.getAllNotes();
+    await databaseHelper.deleteDatabase();
 
-    for (var note in notes) {
-      var id = note.id;
-      var title = note.title;
-      var content = note.content;
-
-      print("ID: $id\nTitle: $title\nContent: $content");
-    }
+    loadNotes();
   }
 
   @override
@@ -107,6 +103,20 @@ class _MainAppState extends State<MainApp> {
         builder: (context) => const SearchScreen(),
       ),
     );
+  }
+
+  Future<List<String>> _getTagsForNote(int noteId) async {
+    List<String> tags = [];
+    List<NoteTag> noteTags =
+        await DatabaseHelper.instance.getAllNoteTagsForNote(noteId);
+    for (var noteTag in noteTags) {
+      List<Tag> tag =
+          await DatabaseHelper.instance.getAllTagsById(noteTag.tagId!);
+      for (Tag t in tag) {
+        tags.add(t.name ?? '');
+      }
+    }
+    return tags;
   }
 
   @override
@@ -146,7 +156,31 @@ class _MainAppState extends State<MainApp> {
                             vertical: 3.0, horizontal: 6.0),
                         child: ListTile(
                           title: Text(_notes[index].title ?? 'No title'),
-                          subtitle: Text(_notes[index].lastUpdate ?? ''),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(_notes[index].lastUpdate ?? ''),
+                              FutureBuilder<List<String>>(
+                                future: _getTagsForNote(_notes[index].id!),
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState ==
+                                          ConnectionState.waiting ||
+                                      !snapshot.hasData) {
+                                    return const SizedBox();
+                                  } else {
+                                    return Wrap(
+                                      spacing: 4,
+                                      children: snapshot.data!
+                                          .map((tag) => Chip(
+                                                label: Text(tag),
+                                              ))
+                                          .toList(),
+                                    );
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
                           onTap: () {
                             var param = _notes[index];
                             Navigator.push(
@@ -178,14 +212,9 @@ class _MainAppState extends State<MainApp> {
                                 child: const Text('Random Note')),
                             ElevatedButton(
                                 onPressed: () {
-                                  dumpNotesData();
+                                  deleteDatabase();
                                 },
-                                child: const Text('Print Data')),
-                            ElevatedButton(
-                                onPressed: () {
-                                  deleteAllNotes();
-                                },
-                                child: const Text('Delete all notes')),
+                                child: const Text('Delete database')),
                           ],
                         ),
                         Builder(

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:notes_trab/db/database_helper.dart';
 import 'package:notes_trab/models/note.dart';
+import 'package:notes_trab/models/note_tag.dart';
+import 'package:notes_trab/models/tag.dart';
 import 'package:notes_trab/screens/note_details.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -43,7 +45,30 @@ class _SearchScreenState extends State<SearchScreen> {
                   final note = _searchResults[index];
                   return ListTile(
                     title: Text(note.title ?? 'No Title'),
-                    subtitle: Text(note.content ?? 'No Content'),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(note.content ?? 'No Content'),
+                        const SizedBox(height: 4),
+                        FutureBuilder<List<String>>(
+                          future: _getTagsForNote(note.id!),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                    ConnectionState.waiting ||
+                                !snapshot.hasData) {
+                              return const SizedBox();
+                            } else {
+                              return Wrap(
+                                spacing: 4,
+                                children: snapshot.data!
+                                    .map((tag) => Chip(label: Text(tag)))
+                                    .toList(),
+                              );
+                            }
+                          },
+                        ),
+                      ],
+                    ),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -62,7 +87,7 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  void _search() async {
+  Future<void> _search() async {
     String query = _searchController.text.trim();
     if (query.isNotEmpty) {
       List<Note> results = await DatabaseHelper.instance.searchNotes(query);
@@ -74,5 +99,19 @@ class _SearchScreenState extends State<SearchScreen> {
         _searchResults.clear();
       });
     }
+  }
+
+  Future<List<String>> _getTagsForNote(int noteId) async {
+    List<String> tags = [];
+    List<NoteTag> noteTags =
+        await DatabaseHelper.instance.getAllNoteTagsForNote(noteId);
+    for (var noteTag in noteTags) {
+      List<Tag> tag =
+          await DatabaseHelper.instance.getAllTagsById(noteTag.tagId!);
+      for (Tag t in tag) {
+        tags.add(t.name ?? '');
+      }
+    }
+    return tags;
   }
 }
