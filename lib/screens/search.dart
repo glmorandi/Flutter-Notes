@@ -69,13 +69,17 @@ class _SearchScreenState extends State<SearchScreen> {
                         ),
                       ],
                     ),
-                    onTap: () {
-                      Navigator.push(
+                    onTap: () async {
+                      final result = await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => NoteDetail(noteDetails: note),
                         ),
                       );
+                      if(result != null && result as bool){
+                        _searchResults.clear();
+                        _search();
+                      }
                     },
                   );
                 },

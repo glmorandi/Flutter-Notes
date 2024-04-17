@@ -96,13 +96,14 @@ class _MainAppState extends State<MainApp> {
     );
   }
 
-  void _openSearch(BuildContext context) {
-    Navigator.push(
+  void _openSearch(BuildContext context) async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => const SearchScreen(),
       ),
     );
+    loadNotes();
   }
 
   Future<List<String>> _getTagsForNote(int noteId) async {

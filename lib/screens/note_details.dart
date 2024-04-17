@@ -198,7 +198,7 @@ class _NoteDetailState extends State<NoteDetail> {
         print('Note-Tag relation created: $insertedNoteTagId');
       }
     }
-    Navigator.pop(context);
+    Navigator.pop(context, true);
   }
 
   void _deleteNote() async {
